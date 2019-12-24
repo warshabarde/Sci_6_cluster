@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Dec 19 18:25:54 2019
+
+@author: warsha
+"""
+
+# %%
+
+#Importing the dataset
+import pandas
+# load the dataset
+dataset = pandas.read_csv('StudyMat_Sci6.csv')
+dataset.head()
+
+# %%
+#Fetch wordcount for each abstract
+dataset['word_count'] = dataset['abstract1'].apply(lambda x: len(str(x).split(" ")))
+#dataset[['abstract1','word_count']].head()
+
+# %%
+#
+###Descriptive statistics of word counts
+#Descriptive_stats_word_count=dataset.word_count.describe()
+#Descriptive_stats_word_count
+#
+##Identify common words
+#freq = pandas.Series(' '.join(dataset['abstract1']).split()).value_counts()[:20]
+#freq
+#
+##Identify uncommon words
+#freq1 =  pandas.Series(' '.join(dataset['abstract1']).split()).value_counts()[-20:]
+#freq1
+# %%
+# Libraries for text preprocessing
+import re
+import nltk
+#nltk.download('stopwords')
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+from nltk.tokenize import RegexpTokenizer
+#nltk.download('wordnet') 
+from nltk.stem.wordnet import WordNetLemmatizer
+
+##Creating a list of stop words and adding custom stopwords
+stop_words = set(stopwords.words("english"))
+##Custom stop words
+#custom_stop_words = ["a", "about", "above", "above", "across","called","including","directly","indirectly","absence", "fig","various","after", "afterwards", "again", "against", "all", "almost", "alone", "along", "already", "also","although","always","am","among", "amongst", "amoungst", "amount",  "an", "and", "another", "any","anyhow","anyone","anything","anyway", "anywhere", "are", "around", "as",  "at", "back","be","became", "because","become","becomes", "becoming", "been", "before", "beforehand", "behind", "being", "below", "beside", "besides", "between", "beyond", "bill", "both", "bottom","but", "by", "call", "can", "cannot", "cant", "co", "con", "could", "couldnt", "cry", "de", "describe", "detail", "do", "done", "down", "due", "during", "each", "eg", "eight", "either", "eleven","else", "elsewhere", "empty", "enough", "etc", "even", "ever", "every", "everyone", "everything", "everywhere", "except", "few", "fifteen", "fify", "fill", "find", "fire", "first", "five", "for", "former", "formerly", "forty", "found", "four", "from", "front", "full", "further", "get", "give", "go", "had", "has", "hasnt", "have", "he", "hence", "her", "here", "hereafter", "hereby", "herein", "hereupon", "hers", "herself", "him", "himself", "his", "how", "however", "hundred", "ie", "if", "in", "inc", "indeed", "interest", "into", "is", "it", "its", "itself", "keep", "last", "latter", "latterly", "least", "less", "ltd", "made", "many", "may", "me", "meanwhile", "might", "mill", "mine", "more", "moreover", "most", "mostly", "move", "much", "must", "my", "myself", "name", "namely", "neither", "never", "nevertheless", "next", "nine", "no", "nobody", "none", "noone", "nor", "not", "nothing", "now", "nowhere", "of", "off", "often", "on", "once", "one", "only", "onto", "or", "other", "others", "otherwise", "our", "ours", "ourselves", "out", "over", "own","part", "per", "perhaps", "please", "put", "rather", "re", "same", "see", "seem", "seemed", "seeming", "seems", "serious", "several", "she", "should", "show", "side", "since", "sincere", "six", "sixty", "so", "some", "somehow", "someone", "something", "sometime", "sometimes", "somewhere", "still", "such", "system", "take", "ten", "than", "that", "the", "their", "them", "themselves", "then", "thence", "there", "thereafter", "thereby", "therefore", "therein", "thereupon", "these", "they", "thick", "thin", "third", "this", "those", "though", "three", "through", "throughout", "thru", "thus", "to", "together", "too", "top", "toward", "towards", "twelve", "twenty", "two", "un", "under", "until", "up", "upon", "us", "very", "via", "was", "we", "well", "were", "what", "whatever", "when", "whence", "whenever", "where", "whereafter", "whereas", "whereby", "wherein", "whereupon", "wherever", "whether", "which", "while", "whither", "who", "whoever", "whole", "whom", "whose", "why", "will", "with", "within", "without", "would", "yet", "you", "your", "yours", "yourself", "yourselves", "the"]
+custom_stop_words0=pandas.read_csv('CustomStopWords_Warsha.csv')
+custom_stop_words=custom_stop_words0[custom_stop_words0.columns[0]].values.tolist()
+stop_words = stop_words.union(custom_stop_words)
+
+# %%
+corpus = []
+for i in range(0, len(dataset)):
+    #Remove punctuations
+    text = re.sub('[^a-zA-Z]', ' ', dataset['abstract1'][i])
+    
+    #Convert to lowercase
+    text = text.lower()
+    
+    #remove tags
+    text=re.sub("&lt;/?.*?&gt;"," &lt;&gt; ",text)
+    
+    # remove special characters and digits
+    text=re.sub("(\\d|\\W)+"," ",text)
+    
+    ##Convert to list from string
+    text = text.split()
+    
+    ##Stemming
+    ps=PorterStemmer()
+    #Lemmatisation
+    lem = WordNetLemmatizer()
+    text = [lem.lemmatize(word) for word in text if not word in  
+            stop_words] 
+#    text = [ps.stem(word) for word in text if not word in  
+#            stop_words] 
+    text = " ".join(text)
+    corpus.append(text)
+    
+#View corpus item
+corpus[0]
+
+# %%
+
+#As the first step of conversion, we will use the CountVectoriser to tokenise 
+#the text and build a vocabulary of known words. We first create a variable “cv” of the 
+#CountVectoriser class, and then evoke the fit_transform function to learn and build the 
+#vocabulary.
+from sklearn.feature_extraction.text import CountVectorizer
+import re
+cv=CountVectorizer(max_df=0.8,stop_words=stop_words, max_features=10000, ngram_range=(1,3))
+TermFreq=cv.fit_transform(corpus)
+TermFreq_arr=TermFreq.toarray()
+
+Vocabulary=list(cv.vocabulary_.keys())[:10000]
+
+##normalised term frequency
+#import numpy as np
+#from numpy import linalg as LA
+#
+#L2Norm=[]
+#for i in range(0, len(TermFreq_arr)): 
+#    l2norm=LA.norm(TermFreq_arr[i])
+#    L2Norm.append(l2norm)
+#    
+#Norm_TermFreq=[]
+#for i in range(0, len(TermFreq_arr)):
+#    ntf=TermFreq_arr[i]/L2Norm[i]
+#    Norm_TermFreq.append(ntf)
+#    
+#Norm_TermFreq=np.array(Norm_TermFreq)    
+#
+##cosine similarity
+## Compute Cosine Similarity
+#from sklearn.metrics.pairwise import cosine_similarity
+#cosine_sim_index_ntf=cosine_similarity(Norm_TermFreq, Norm_TermFreq)
+#        
+#    
+        # %%
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer
+ 
+tfidf_transformer=TfidfTransformer(smooth_idf=True,use_idf=True)
+tfidf_transformer.fit(TermFreq)
+ 
+# print idf values
+df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(),columns=["idf_weights"])
+ 
+# sort ascending
+df_idf.sort_values(by=['idf_weights'])
+
+
+# %%
+
+# count matrix
+count_vector=cv.transform(corpus)
+ 
+# tf-idf scores
+tf_idf_vector=tfidf_transformer.transform(count_vector)
+tf_idf_vector_arr=tf_idf_vector.toarray()
+
+# %%
+
+#cosine similarity
+# Compute Cosine Similarity
+from sklearn.metrics.pairwise import cosine_similarity
+cosine_sim_index_tfidf=cosine_similarity(tf_idf_vector_arr, tf_idf_vector_arr)
+
+# %%
+       
+import numpy as np
+np.fill_diagonal(cosine_sim_index_tfidf, 0)
+
+import numpy as np
+max_cosine_sim_index_tfidf=np.amax(cosine_sim_index_tfidf)
+
+
+#HEATMAP      
+import numpy as np; np.random.seed(0)
+import seaborn as sns; sns.set()
+#uniform_data = np.random.rand(10, 12)
+ax = sns.heatmap(cosine_sim_index_tfidf,vmin=0, vmax=max_cosine_sim_index_tfidf)
+
+import numpy, scipy.io
+scipy.io.savemat('Cosine_sim_index_tfidf_6.mat', mdict={'cosine_sim_index_tfidf': cosine_sim_index_tfidf})
