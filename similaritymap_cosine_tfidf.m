@@ -14,4 +14,5 @@ test=squareform(C);
 % make a vector to feed into linkage fn
 y = squareform(test);
 Z = linkage(y,'complete');
+%make a hc figure
 dendrogram(Z,0)
